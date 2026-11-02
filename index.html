@@ -16,12 +16,27 @@
 
   <style>
     @media print {
-      body * { visibility: hidden; }
-      #print-area, #print-area * { visibility: visible; }
-      #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-      .no-print { display: none !important; }
-      @page { size: A4 portrait; margin: 10mm; }
+      body * {
+        visibility: hidden;
+      }
+      #print-area, #print-area * {
+        visibility: visible;
+      }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
     }
+    
     .a4-preview {
       width: 210mm;
       min-height: 297mm;
@@ -35,27 +50,31 @@
   <script type="text/babel">
     const { useState } = React;
 
-    // KONTROLLE: Passwort für Führungskräfte (Hier anpassen)
-    const ACCESS_PASSWORD = "112";
+    // PASSWORT-EINSTELLUNG
+    const ACCESS_PASSWORD = "51FRH112";
 
     function App() {
+      // Auth State
       const [isAuthenticated, setIsAuthenticated] = useState(false);
       const [passwordInput, setPasswordInput] = useState("");
       const [authError, setAuthError] = useState(false);
 
-      const [activeTab, setActiveTab] = useState('newsletter');
+      // App State
+      const [activeTab, setActiveTab] = useState('omw');
       const [logoUrl, setLogoUrl] = useState(null);
       
-      // NEWSLETTER STATE (Original wie im 1. Anlauf)
+      // Header State
       const [titel, setTitel] = useState('MONATS-INFO');
       const [stichwort, setStichwort] = useState('EINSATZUPDATE & INFOS');
+      
+      // Newsletter State
       const [articles, setArticles] = useState([
-        {
-          id: 1,
-          title: 'Erfolgreiche Großübung absolviert',
-          category: 'Übungsdienst',
-          text: 'Am vergangenen Samstag fand unsere jährliche Hauptübung statt. Schwerpunkte waren die Brandbekämpfung sowie die Menschenrettung unter schwerem Atemschutz.',
-          image: null
+        { 
+          id: 1, 
+          title: 'Erfolgreiche Großübung absolviert', 
+          category: 'Übungsdienst', 
+          text: 'Am vergangenen Samstag fand unsere jährliche Hauptübung statt. Schwerpunkte waren die Brandbekämpfung sowie die Menschenrettung unter schwerem Atemschutz.', 
+          image: null 
         }
       ]);
       const [sidebarInfo, setSidebarInfo] = useState({
@@ -64,18 +83,33 @@
         termine: '15.11. - Dienstversammlung\n28.11. - Wettausbildung'
       });
 
-      // ONE MINUTE WONDER STATE (Inkl. KI-Funktion & variable Boxen)
+      // One Minute Wonder State (Inkl. Grafiken & variabler Boxenanzahl)
       const [omwTitle, setOmwTitle] = useState('Motorkettensäge im Feuerwehrdienst');
       const [omwSub, setOmwSub] = useState('SICHERHEIT & EINSATZTAKTIK');
-      const [aiPrompt, setAiPrompt] = useState('');
-      const [isAiLoading, setIsAiLoading] = useState(false);
+      const [generatingGraphicId, setGeneratingGraphicId] = useState(null);
+      
       const [omwBoxes, setOmwBoxes] = useState([
-        { id: 1, title: 'Persönliche Schutzausrüstung', text: 'Schnittschutzhose (Klasse 1), Feuerwehrschutzhelm mit Gesichtsschutz und Gehörschutz sind Pflicht.', image: null },
-        { id: 2, title: 'Einsatzbereiche', text: 'Beseitigung von Sturmschäden, Freischneiden von Zuwegungen sowie Schaffen von Abluftöffnungen.', image: null },
-        { id: 3, title: 'Sicherheitsabstand', text: 'Im Gefahrenbereich von doppelter Baumlänge darf sich nur der Sägeführer und der Gehilfe aufhalten.', image: null }
+        { 
+          id: 1, 
+          title: 'Persönliche Schutzausrüstung', 
+          text: 'Schnittschutzhose (Klasse 1), Helm mit Gesichtsschutz und Gehörschutz sind zwingend erforderlich.', 
+          image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=400&q=80' 
+        },
+        { 
+          id: 2, 
+          title: 'Einsatzbereich', 
+          text: 'Beseitigung von Sturmschäden, Dachteile öffnen bei Brandeinsätzen, THL-Einsätze.', 
+          image: null 
+        },
+        { 
+          id: 3, 
+          title: 'Sicherheitszonen', 
+          text: 'Im Gefahrenbereich von 2x Baumlänge darf sich nur der Sägeführer und der Helfer aufhalten.', 
+          image: null 
+        }
       ]);
 
-      // Login Check
+      // Login Handler
       const handleLogin = (e) => {
         e.preventDefault();
         if (passwordInput === ACCESS_PASSWORD) {
@@ -92,12 +126,9 @@
         if (file) setLogoUrl(URL.createObjectURL(file));
       };
 
-      // Newsletter Artikel Steuerung
+      // Newsletter Steuerung
       const addArticle = () => {
-        setArticles([
-          ...articles,
-          { id: Date.now(), title: 'Neuer Beitrag', category: 'Allgemein', text: 'Inhalt hier eingeben...', image: null }
-        ]);
+        setArticles([...articles, { id: Date.now(), title: 'Neuer Beitrag', category: 'Allgemein', text: 'Inhalt hier eingeben...', image: null }]);
       };
 
       const updateArticle = (id, field, value) => {
@@ -105,25 +136,16 @@
       };
 
       const removeArticle = (id) => {
-        if (articles.length > 1) {
-          setArticles(articles.filter(a => a.id !== id));
-        }
+        if (articles.length > 1) setArticles(articles.filter(a => a.id !== id));
       };
 
-      const handleArticleImageUpload = (id, e) => {
-        const file = e.target.files[0];
-        if (file) updateArticle(id, 'image', URL.createObjectURL(file));
-      };
-
-      // OMW Boxen Steuerung
+      // OMW Boxen Steuerung (Variable Anzahl)
       const addOmwBox = () => {
-        setOmwBoxes([...omwBoxes, { id: Date.now(), title: `Infobox ${omwBoxes.length + 1}`, text: 'Kompakte Wissensinfo...', image: null }]);
+        setOmwBoxes([...omwBoxes, { id: Date.now(), title: `Infobox ${omwBoxes.length + 1}`, text: 'Inhalt / Fakten hier eingeben...', image: null }]);
       };
 
       const removeOmwBox = (id) => {
-        if (omwBoxes.length > 1) {
-          setOmwBoxes(omwBoxes.filter(b => b.id !== id));
-        }
+        if (omwBoxes.length > 1) setOmwBoxes(omwBoxes.filter(b => b.id !== id));
       };
 
       const updateOmwBox = (id, field, value) => {
@@ -135,305 +157,40 @@
         if (file) updateOmwBox(id, 'image', URL.createObjectURL(file));
       };
 
-      // Simuliert KI-Inhaltsgenerierung für OMW
-      const generateAiContent = () => {
-        if (!aiPrompt) return;
-        setIsAiLoading(true);
+      // KI Grafik-Generierung Simulation (Erstellt passende Schema-Grafik)
+      const generateAiGraphic = (id, promptText) => {
+        setGeneratingGraphicId(id);
         
         setTimeout(() => {
-          setOmwTitle(aiPrompt);
-          setOmwSub('FEUERWEHR-FACHWISSEN');
-          setOmwBoxes([
-            { id: 1, title: 'Grundlagen & Einsatz', text: `Wichtige Grundregeln und Sicherheitsaspekte zum Thema ${aiPrompt}.`, image: null },
-            { id: 2, title: 'Einsatztaktik & Vorgehen', text: `Taktische Hinweise für den Gruppenführer und den Angriffstrupp im Einsatz.`, image: null },
-            { id: 3, title: 'Gefahren & Schutzmaßnahmen', text: `Typische Gefahrenquellen erkennen und entsprechende Schutzausrüstung wählen.`, image: null }
-          ]);
-          setIsAiLoading(false);
-        }, 1200);
+          // Generiert eine hochauflösende Feuerwehr-/Technik-Illustration basierend auf Unsplash Source
+          const sampleImages = [
+            'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=500&q=80',
+            'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=500&q=80',
+            'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=500&q=80',
+            'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=500&q=80'
+          ];
+          const randomImg = sampleImages[Math.floor(Math.random() * sampleImages.length)];
+          
+          updateOmwBox(id, 'image', randomImg);
+          setGeneratingGraphicId(null);
+        }, 1500);
       };
 
+      // ANMELDEBILDSCHIRM
       if (!isAuthenticated) {
         return (
           <div class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
             <form onSubmit={handleLogin} class="bg-gray-900 border border-gray-800 p-8 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
               <div class="text-center">
-                <i class="fa-solid fa-shield-halved text-4xl text-red-600 mb-2"></i>
+                <i class="fa-solid fa-shield-halved text-4xl text-red-600 mb-3"></i>
                 <h2 class="text-xl font-bold text-white">Geschützter Bereich</h2>
-                <p class="text-xs text-gray-400 mt-1">Bitte Passwort für Führungskräfte eingeben</p>
+                <p class="text-xs text-gray-400 mt-1">Freiwillige Feuerwehr Reithofen-Harthofen</p>
               </div>
               <div>
+                <label class="text-xs text-gray-400 block mb-1">Passwort eingeben</label>
                 <input 
                   type="password" 
                   placeholder="Passwort..." 
                   value={passwordInput} 
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-center focus:outline-none focus:border-red-600"
-                />
-                {authError && <p class="text-red-500 text-xs mt-2 text-center">Falsches Passwort!</p>}
-              </div>
-              <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
-                Anmelden
-              </button>
-            </form>
-          </div>
-        );
-      }
-
-      return (
-        <div class="flex h-screen overflow-hidden">
-          {/* EDITOR (LINKS) */}
-          <div class="w-1/2 p-6 overflow-y-auto border-r border-gray-800 bg-gray-950 no-print">
-            <div class="flex items-center justify-between mb-6 border-b border-gray-800 pb-4">
-              <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
-                <i class="fa-solid fa-fire-extinguisher"></i> Feuerwehr Infomedien Studio
-              </h1>
-              <button onClick={() => window.print()} class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition">
-                <i class="fa-solid fa-print"></i> PDF Drucken
-              </button>
-            </div>
-
-            {/* Logo Upload */}
-            <div class="bg-gray-900 p-4 rounded-xl mb-6 border border-gray-800">
-              <label class="text-xs text-gray-400 block mb-1">Vereins-Logo (Header rechts)</label>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} class="text-xs text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-950 file:text-red-400 hover:file:bg-red-900 cursor-pointer" />
-            </div>
-
-            {/* Tab Selector */}
-            <div class="flex gap-2 mb-6">
-              <button 
-                onClick={() => setActiveTab('newsletter')}
-                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'newsletter' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
-                <i class="fa-solid fa-newspaper"></i> Newsletter
-              </button>
-              <button 
-                onClick={() => setActiveTab('omw')}
-                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'omw' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
-                <i class="fa-solid fa-bolt"></i> One Minute Wonder
-              </button>
-            </div>
-
-            {/* TAB: NEWSLETTER */}
-            {activeTab === 'newsletter' && (
-              <div class="space-y-6">
-                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <h3 class="font-semibold text-red-400 text-sm">Header Überschriften</h3>
-                  <input type="text" value={titel} onChange={(e) => setTitel(e.target.value)} placeholder="Haupttitel (Schwarz)" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
-                  <input type="text" value={stichwort} onChange={(e) => setStichwort(e.target.value)} placeholder="Stichwort (Rot)" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
-                </div>
-
-                {/* Beiträge */}
-                <div class="space-y-4">
-                  <div class="flex justify-between items-center">
-                    <h3 class="font-semibold text-gray-300">Newsletter Beiträge ({articles.length})</h3>
-                    <button onClick={addArticle} class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
-                      <i class="fa-solid fa-plus"></i> Beitrag hinzufügen
-                    </button>
-                  </div>
-
-                  {articles.map((art, idx) => (
-                    <div key={art.id} class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                      <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-red-500">Beitrag #{idx + 1}</span>
-                        {articles.length > 1 && (
-                          <button onClick={() => removeArticle(art.id)} class="text-gray-500 hover:text-red-400 text-xs">
-                            <i class="fa-solid fa-trash"></i> Löschen
-                          </button>
-                        )}
-                      </div>
-                      <input type="text" value={art.category} onChange={(e) => updateArticle(art.id, 'category', e.target.value)} placeholder="Kategorie (z. B. Übungsdienst)" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs font-semibold text-red-400" />
-                      <input type="text" value={art.title} onChange={(e) => updateArticle(art.id, 'title', e.target.value)} placeholder="Überschrift" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-bold" />
-                      <textarea rows="3" value={art.text} onChange={(e) => updateArticle(art.id, 'text', e.target.value)} placeholder="Textinhalt..." class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"></textarea>
-                      <div>
-                        <label class="text-[10px] text-gray-400 block mb-1">Optionales Bild für diesen Beitrag</label>
-                        <input type="file" accept="image/*" onChange={(e) => handleArticleImageUpload(art.id, e)} class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-800 file:text-gray-300" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Rechte Infobox Config */}
-                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <h3 class="font-semibold text-red-400 text-sm">Rechte Infobox (Statistik & Termine)</h3>
-                  <div class="grid grid-cols-2 gap-2">
-                    <input type="text" value={sidebarInfo.einsaetze} onChange={(e) => setSidebarInfo({...sidebarInfo, einsaetze: e.target.value})} placeholder="Einsätze" class="bg-gray-800 border border-gray-700 rounded p-2 text-xs" />
-                    <input type="text" value={sidebarInfo.uebungen} onChange={(e) => setSidebarInfo({...sidebarInfo, uebungen: e.target.value})} placeholder="Übungen" class="bg-gray-800 border border-gray-700 rounded p-2 text-xs" />
-                  </div>
-                  <textarea rows="3" value={sidebarInfo.termine} onChange={(e) => setSidebarInfo({...sidebarInfo, termine: e.target.value})} placeholder="Termine..." class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"></textarea>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: ONE MINUTE WONDER */}
-            {activeTab === 'omw' && (
-              <div class="space-y-6">
-                {/* KI Unterstützung */}
-                <div class="bg-gradient-to-r from-red-950 to-gray-900 p-4 rounded-xl border border-red-800/50 space-y-3">
-                  <h3 class="font-bold text-red-400 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> KI-Unterstützung (Thema generieren)
-                  </h3>
-                  <div class="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={aiPrompt} 
-                      onChange={(e) => setAiPrompt(e.target.value)} 
-                      placeholder="z. B. Hohlstrahlrohr, Atemschutz..." 
-                      class="flex-1 bg-gray-800 border border-gray-700 rounded p-2 text-xs"
-                    />
-                    <button 
-                      onClick={generateAiContent} 
-                      disabled={isAiLoading}
-                      class="bg-red-600 hover:bg-red-700 text-white text-xs px-4 py-2 rounded font-bold transition flex items-center gap-2"
-                    >
-                      {isAiLoading ? <i class="fa-solid fa-spinner fa-spin"></i> : <i class="fa-solid fa-robot"></i>} Generieren
-                    </button>
-                  </div>
-                </div>
-
-                {/* Titel */}
-                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <input type="text" value={omwTitle} onChange={(e) => setOmwTitle(e.target.value)} placeholder="Thema / Haupttitel" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-bold" />
-                  <input type="text" value={omwSub} onChange={(e) => setOmwSub(e.target.value)} placeholder="Untertitel / Kategorie" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs text-red-400 font-semibold" />
-                </div>
-
-                {/* Variable Boxen */}
-                <div class="space-y-4">
-                  <div class="flex justify-between items-center">
-                    <h3 class="font-semibold text-gray-300">Infoboxen ({omwBoxes.length})</h3>
-                    <button onClick={addOmwBox} class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
-                      <i class="fa-solid fa-plus"></i> Box hinzufügen
-                    </button>
-                  </div>
-
-                  {omwBoxes.map((box, idx) => (
-                    <div key={box.id} class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                      <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-red-500">Box #{idx + 1}</span>
-                        {omwBoxes.length > 1 && (
-                          <button onClick={() => removeOmwBox(box.id)} class="text-gray-500 hover:text-red-400 text-xs">
-                            <i class="fa-solid fa-trash"></i> Löschen
-                          </button>
-                        )}
-                      </div>
-                      <input type="text" value={box.title} onChange={(e) => updateOmwBox(box.id, 'title', e.target.value)} placeholder="Box Überschrift" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs font-semibold" />
-                      <textarea rows="2" value={box.text} onChange={(e) => updateOmwBox(box.id, 'text', e.target.value)} placeholder="Inhalt..." class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"></textarea>
-                      <div>
-                        <label class="text-[10px] text-gray-400 block mb-1">Grafik / Bild für diese Box</label>
-                        <input type="file" accept="image/*" onChange={(e) => handleBoxImageUpload(box.id, e)} class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-800 file:text-gray-300" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* DIN A4 LIVE VORSCHAU (RECHTS) */}
-          <div class="w-1/2 bg-gray-800 p-8 overflow-y-auto flex justify-center items-start">
-            <div id="print-area" class="a4-preview bg-white text-gray-900 p-8 flex flex-col justify-between">
-              <div>
-                {/* HEADER */}
-                <div class="border-b-4 border-[#C80000] pb-4 mb-6">
-                  <div class="bg-[#C80000] text-white px-4 py-2 font-bold tracking-wider text-sm rounded-t flex justify-between items-center">
-                    <span>FREIWILLIGE FEUERWEHR REITHOFEN-HARTHOFEN</span>
-                    <span class="text-xs opacity-80">{new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
-                  </div>
-                  <div class="flex justify-between items-start mt-4 px-1">
-                    <div>
-                      {activeTab === 'newsletter' ? (
-                        <>
-                          <h1 class="text-3xl font-extrabold text-black tracking-tight uppercase">{titel}</h1>
-                          <p class="text-[#C80000] font-bold text-sm tracking-widest mt-0.5">{stichwort}</p>
-                        </>
-                      ) : (
-                        <>
-                          <div class="inline-block bg-black text-white px-2 py-0.5 text-xs font-black tracking-widest mb-1">ONE-MINUTE-WONDER</div>
-                          <h1 class="text-2xl font-black text-black tracking-tight">{omwTitle}</h1>
-                          <p class="text-[#C80000] font-bold text-xs tracking-wider mt-0.5">{omwSub}</p>
-                        </>
-                      )}
-                    </div>
-                    {/* LOGO AREA */}
-                    <div class="w-20 h-20 flex items-center justify-center border-2 border-dashed border-gray-300 rounded bg-gray-50 overflow-hidden shrink-0">
-                      {logoUrl ? (
-                        <img src={logoUrl} alt="Logo" class="w-full h-full object-contain" />
-                      ) : (
-                        <span class="text-[10px] text-gray-400 font-semibold text-center leading-tight">LOGO<br/>HIER</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* NEWSLETTER LAYOUT */}
-                {activeTab === 'newsletter' && (
-                  <div class="grid grid-cols-3 gap-6">
-                    <div class="col-span-2 space-y-6">
-                      {articles.map((art) => (
-                        <div key={art.id} class="border-b border-gray-200 pb-4">
-                          <span class="text-[10px] font-bold bg-red-100 text-[#C80000] px-2 py-0.5 rounded uppercase">{art.category}</span>
-                          <h2 class="text-lg font-bold text-gray-900 mt-1">{art.title}</h2>
-                          <p class="text-xs text-gray-700 leading-relaxed mt-2 whitespace-pre-line">{art.text}</p>
-                          {art.image && (
-                            <img src={art.image} class="mt-3 rounded border border-gray-200 max-h-48 w-full object-cover" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* RECHTE INFOBOX */}
-                    <div class="col-span-1 space-y-4">
-                      <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-[#C80000] shadow-sm">
-                        <h3 class="font-bold text-xs text-gray-900 uppercase tracking-wider mb-2 border-b pb-1">Statistik Monat</h3>
-                        <div class="space-y-1 text-xs">
-                          <div class="flex justify-between"><span>Einsätze:</span> <strong class="text-[#C80000]">{sidebarInfo.einsaetze}</strong></div>
-                          <div class="flex justify-between"><span>Übungen:</span> <strong>{sidebarInfo.uebungen}</strong></div>
-                        </div>
-                      </div>
-
-                      <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-800 shadow-sm">
-                        <h3 class="font-bold text-xs text-gray-900 uppercase tracking-wider mb-2 border-b pb-1">Termine</h3>
-                        <p class="text-[11px] text-gray-700 whitespace-pre-line leading-relaxed">{sidebarInfo.termine}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ONE MINUTE WONDER LAYOUT */}
-                {activeTab === 'omw' && (
-                  <div class="space-y-4">
-                    <div class={`grid gap-4 ${omwBoxes.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                      {omwBoxes.map((box, i) => (
-                        <div key={box.id} class="border-2 border-gray-200 rounded-lg p-3 bg-white shadow-sm flex flex-col justify-between">
-                          <div>
-                            <div class="flex items-center gap-2 mb-2">
-                              <span class="w-5 h-5 rounded-full bg-[#C80000] text-white flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
-                              <h3 class="font-bold text-sm text-gray-900">{box.title}</h3>
-                            </div>
-                            <p class="text-xs text-gray-600 leading-relaxed">{box.text}</p>
-                          </div>
-                          {box.image && (
-                            <div class="mt-3 h-28 w-full rounded overflow-hidden border border-gray-200">
-                              <img src={box.image} class="w-full h-full object-cover" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* FOOTER */}
-              <div class="border-t border-gray-200 pt-3 flex justify-between items-center text-[10px] text-gray-400">
-                <span>Freiwillige Feuerwehr Reithofen-Harthofen</span>
-                <span>Seite 1</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
-</body>
-</html>
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-center tracking-widest focus
