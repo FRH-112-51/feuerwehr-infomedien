@@ -75,6 +75,18 @@
         { id: 3, title: 'Sicherheitszonen', text: 'Im Gefahrenbereich von 2x Baumlänge darf sich nur der Sägeführer und der Helfer aufhalten.', image: null }
       ]);
 
+      // Übungsplan State
+      const [planTitle, setPlanTitle] = useState('ÜBUNGSPLAN');
+      const [planSub, setPlanSub] = useState('MONATSRÜBERSICHT');
+      const [gruppenList] = useState([
+        'Gruppe 1', 'Gruppe 2', 'Gruppe 3', 'Jugendfeuerwehr', 'FB Atemschutz', 'FB First Responder', 'FB ERHT', 'Alle', 'FB Maschinisten'
+      ]);
+      const [uebungen, setUebungen] = useState([
+        { id: 1, datum: '12.11.2026', gruppe: 'Gruppe 1', thema: 'Brandbekämpfung Innenangriff', zeit: '19:30 - 21:30', leiter: 'H. Huber' },
+        { id: 2, datum: '19.11.2026', gruppe: 'Jugendfeuerwehr', thema: 'Fahrzeug- und Gerätekunde', zeit: '19:30 - 21:30', leiter: 'M. Maier' },
+        { id: 3, datum: '26.11.2026', gruppe: 'FB Atemschutz', thema: 'Belastungsübung & Streckengang', zeit: '19:30 - 21:30', leiter: 'A. Bauer' }
+      ]);
+
       // Logo Handle
       const handleLogoUpload = (e) => {
         const file = e.target.files[0];
@@ -133,6 +145,39 @@
         }
       };
 
+      // Übungsplan Controls
+      const addUebung = () => {
+        setUebungen([...uebungen, {
+          id: Date.now(),
+          datum: '01.12.2026',
+          gruppe: 'Alle',
+          thema: 'Neues Thema eingeben...',
+          zeit: '19:30 - 21:30',
+          leiter: 'Vorname Nachname'
+        }]);
+      };
+
+      const removeUebung = (id) => {
+        if (uebungen.length > 1) {
+          setUebungen(uebungen.filter(u => u.id !== id));
+        }
+      };
+
+      const updateUebung = (id, field, value) => {
+        setUebungen(uebungen.map(u => u.id === id ? { ...u, [field]: value } : u));
+      };
+
+      const moveUebung = (index, direction) => {
+        const newUebungen = [...uebungen];
+        const targetIndex = index + direction;
+        if (targetIndex >= 0 && targetIndex < newUebungen.length) {
+          const temp = newUebungen[index];
+          newUebungen[index] = newUebungen[targetIndex];
+          newUebungen[targetIndex] = temp;
+          setUebungen(newUebungen);
+        }
+      };
+
       // Print
       const handlePrint = () => {
         window.print();
@@ -164,13 +209,18 @@
             <div class="flex gap-2 mb-6">
               <button 
                 onClick={() => setActiveTab('newsletter')}
-                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'newsletter' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
+                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-xs ${activeTab === 'newsletter' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
                 <i class="fa-solid fa-newspaper"></i> Newsletter
               </button>
               <button 
                 onClick={() => setActiveTab('omw')}
-                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'omw' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
-                <i class="fa-solid fa-bolt"></i> One Minute Wonder
+                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-xs ${activeTab === 'omw' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
+                <i class="fa-solid fa-bolt"></i> One Min.
+              </button>
+              <button 
+                onClick={() => setActiveTab('plan')}
+                class={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-xs ${activeTab === 'plan' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
+                <i class="fa-solid fa-calendar-days"></i> Übungsplan
               </button>
             </div>
 
@@ -333,6 +383,108 @@
                 </div>
               </div>
             )}
+
+            {/* TAB: ÜBUNGSPLAN */}
+            {activeTab === 'plan' && (
+              <div class="space-y-4">
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
+                  <h3 class="font-semibold text-red-400">Übungsplan Header</h3>
+                  <div>
+                    <label class="text-xs text-gray-400">Haupt-Titel</label>
+                    <input type="text" value={planTitle} onChange={(e) => setPlanTitle(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Stichwort / Untertitel (Rot)</label>
+                    <input type="text" value={planSub} onChange={(e) => setPlanSub(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                </div>
+
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-gray-300">Termine verwalten ({uebungen.length})</h3>
+                    <button onClick={addUebung} class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
+                      <i class="fa-solid fa-plus"></i> Übung hinzufügen
+                    </button>
+                  </div>
+
+                  {uebungen.map((u, idx) => (
+                    <div key={u.id} class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-2 relative">
+                      <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs font-bold text-red-500">Übung #{idx + 1}</span>
+                          <div class="flex gap-1">
+                            <button onClick={() => moveUebung(idx, -1)} disabled={idx === 0} class="bg-gray-800 hover:bg-gray-700 disabled:opacity-30 text-gray-300 px-1.5 py-0.5 rounded text-[10px]" title="Nach oben verschieben">
+                              <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                            <button onClick={() => moveUebung(idx, 1)} disabled={idx === uebungen.length - 1} class="bg-gray-800 hover:bg-gray-700 disabled:opacity-30 text-gray-300 px-1.5 py-0.5 rounded text-[10px]" title="Nach unten verschieben">
+                              <i class="fa-solid fa-arrow-down"></i>
+                            </button>
+                          </div>
+                        </div>
+                        {uebungen.length > 1 && (
+                          <button onClick={() => removeUebung(u.id)} class="text-gray-500 hover:text-red-400 text-xs">
+                            <i class="fa-solid fa-trash"></i> Löschen
+                          </button>
+                        )}
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="text-xs text-gray-400 block mb-1">Datum</label>
+                          <input 
+                            type="text" 
+                            value={u.datum} 
+                            onChange={(e) => updateUebung(u.id, 'datum', e.target.value)} 
+                            class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label class="text-xs text-gray-400 block mb-1">Gruppe</label>
+                          <select 
+                            value={u.gruppe} 
+                            onChange={(e) => updateUebung(u.id, 'gruppe', e.target.value)} 
+                            class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs text-gray-100"
+                          >
+                            {gruppenList.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="text-xs text-gray-400 block mb-1">Thema</label>
+                        <input 
+                          type="text" 
+                          value={u.thema} 
+                          onChange={(e) => updateUebung(u.id, 'thema', e.target.value)} 
+                          class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs font-semibold" 
+                        />
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="text-xs text-gray-400 block mb-1">Uhrzeit</label>
+                          <input 
+                            type="text" 
+                            value={u.zeit} 
+                            onChange={(e) => updateUebung(u.id, 'zeit', e.target.value)} 
+                            class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label class="text-xs text-gray-400 block mb-1">Übungsleiter</label>
+                          <input 
+                            type="text" 
+                            value={u.leiter} 
+                            onChange={(e) => updateUebung(u.id, 'leiter', e.target.value)} 
+                            class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* RIGHT SIDEBAR / LIVE A4 PREVIEW */}
@@ -358,15 +510,22 @@
                   </div>
 
                   <div class="mt-4 px-1">
-                    {activeTab === 'newsletter' ? (
+                    {activeTab === 'newsletter' && (
                       <>
                         <h1 class="text-3xl font-extrabold text-black tracking-tight uppercase">{titel}</h1>
                         <p class="text-[#C80000] font-bold text-sm tracking-widest mt-0.5">{stichwort}</p>
                       </>
-                    ) : (
+                    )}
+                    {activeTab === 'omw' && (
                       <>
                         <h1 class="text-3xl font-extrabold text-black tracking-tight uppercase">{omwTitle}</h1>
                         <p class="text-[#C80000] font-bold text-sm tracking-widest mt-0.5">{omwSub}</p>
+                      </>
+                    )}
+                    {activeTab === 'plan' && (
+                      <>
+                        <h1 class="text-3xl font-extrabold text-black tracking-tight uppercase">{planTitle}</h1>
+                        <p class="text-[#C80000] font-bold text-sm tracking-widest mt-0.5">{planSub}</p>
                       </>
                     )}
                   </div>
@@ -430,6 +589,38 @@
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTENT AREA: ÜBUNGSPLAN */}
+                {activeTab === 'plan' && (
+                  <div class="space-y-3">
+                    <div class="border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
+                      <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="bg-gray-100 text-gray-700 text-xs border-b border-gray-200">
+                            <th class="p-2.5 font-bold">Datum</th>
+                            <th class="p-2.5 font-bold">Gruppe</th>
+                            <th class="p-2.5 font-bold">Thema</th>
+                            <th class="p-2.5 font-bold">Uhrzeit</th>
+                            <th class="p-2.5 font-bold">Leiter</th>
+                          </tr>
+                        </thead>
+                        <tbody class="text-xs divide-y divide-gray-100">
+                          {uebungen.map((u, i) => (
+                            <tr key={u.id} class={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                              <td class="p-2.5 font-semibold text-gray-900 whitespace-nowrap">{u.datum}</td>
+                              <td class="p-2.5">
+                                <span class="bg-red-100 text-[#C80000] px-2 py-0.5 rounded font-bold text-[10px] uppercase">{u.gruppe}</span>
+                              </td>
+                              <td class="p-2.5 text-gray-800 font-medium">{u.thema}</td>
+                              <td class="p-2.5 text-gray-600 whitespace-nowrap"><i class="fa-regular fa-clock mr-1 text-gray-400"></i>{u.zeit}</td>
+                              <td class="p-2.5 text-gray-700 font-medium">{u.leiter}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
