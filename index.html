@@ -1,310 +1,892 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feuerwehr Infomedien Studio</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  FileText, Lightbulb, Plus, Trash2, Image as ImageIcon, 
+  Printer, Sparkles, Download, Upload, MoveUp, MoveDown, 
+  Calendar, Activity, Layers, Tag, Eye, Settings, RefreshCw, ChevronRight, HelpCircle
+} from 'lucide-react';
 
-  <style>
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      #print-area, #print-area * {
-        visibility: visible;
-      }
-      #print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-      }
-      .no-print {
-        display: none !important;
-      }
-      @page {
-        size: A4 portrait;
-        margin: 10mm;
-      }
+export default function App() {
+  // --- Active Tab / Media Type ---
+  const [docType, setDocType] = useState('newsletter'); // 'newsletter' | 'oneminute'
+
+  // --- Shared Branding State ---
+  const [headerTitle, setHeaderTitle] = useState('Freiwillige Feuerwehr Reithofen-Harthofen');
+  const [logoUrl, setLogoUrl] = useState(null); // dynamic logo upload
+  const [mainTitle, setMainTitle] = useState('Monatsbericht Oktober 2026');
+  const [stichwort, setStichwort] = useState('EINSATZSTARK & BEREIT');
+  const [issueDate, setIssueDate] = useState('Ausgabe #10 - 2026');
+
+  // --- Newsletter State ---
+  const [sidebarItems, setSidebarItems] = useState([
+    { id: '1', title: 'Nächste Termine', type: 'list', items: ['12. Nov - Monatsübung (19:00)', '20. Nov - Atemschutzstrecke', '01. Dez - Adventsfeier'] },
+    { id: '2', title: 'Einsatzstatistik 2026', type: 'stats', items: ['Einsätze gesamt: 42', 'Brand: 11 | THL: 28', 'Sicherheitswachen: 3'] }
+  ]);
+
+  const [articles, setArticles] = useState([
+    {
+      id: 'a1',
+      title: 'Großübung Technischer Hilfeleistung absolviert',
+      category: 'Übungsdienst',
+      content: 'Am vergangenen Samstag fand eine umfangreiche Schulung zur Personenrettung aus verunfallten PKWs statt. Unter Einsatz von Schwerem Gerät (Rettungsschere und Spreizer) wurden verschiedene Schnitttechniken und Patientenbetreuung trainiert.',
+      images: []
+    },
+    {
+      id: 'a2',
+      title: 'Neuzugang im Fuhrpark & Nachwuchswerbung',
+      category: 'Verein',
+      content: 'Wir freuen uns, zwei neue Kameradinnen in der aktiven Mannschaft begrüßen zu dürfen. Interessierte ab 12 Jahren für die Jugendfeuerwehr sind jederzeit beim 14-tägigen Jugenddienst willkommen!',
+      images: []
     }
-    
-    .a4-preview {
-      width: 210mm;
-      min-height: 297mm;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  ]);
+
+  // --- One Minute Wonder State ---
+  const [omwTopic, setOmwTopic] = useState('Der Hohlstrahlrohr-Effekt');
+  const [omwBadge, setOmwBadge] = useState('TAKTIK & SCHAUM');
+  const [omwSummary, setOmwSummary] = useState('Warum moderne Hohlstrahlrohre bei der Innenbrandbekämpfung Wasserschaden minimieren und maximale Kühleffizienz bieten.');
+  const [omwKeyFacts, setOmwKeyFacts] = useState([
+    { label: 'Durchfluss', val: '130 - 400 l/min' },
+    { label: 'Tröpfchengröße', val: 'Opt. Verdampfung' },
+    { label: 'Taktik', val: 'Pulsen & Hydraul. Lüftung' }
+  ]);
+  const [omwMainText, setOmwMainText] = useState('Durch die stufenlose Einstellung von Vollstrahl auf Sprühstrahl kann der Angriffstrupp den Feuerüberschlag (Flashover) effektiv verhindern. Durch kurze Sprühstöße in die heiße Rauchgasschicht wird die Temperatur schlagartig gesenkt.');
+  const [omwImage, setOmwImage] = useState(null);
+  const [omwHighlightBox, setOmwHighlightBox] = useState('Merke: 1 Liter Wasser ergibt ca. 1.700 Liter Wasserdampf! Zuviel Wasser im Innenangriff gefährdet den Trupp durch Verbrühungen.');
+
+  // --- AI State & Handlers ---
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTopicInput, setAiTopicInput] = useState('');
+  const [aiPromptType, setAiPromptType] = useState('summarize'); // 'summarize' | 'ideas'
+
+  // Dynamic Image Handler
+  const handleImageUpload = (e, callback) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => callback(uploadEvent.target.result);
+      reader.readAsDataURL(file);
     }
-  </style>
-</head>
-<body class="bg-gray-900 text-gray-100 font-sans antialiased min-h-screen">
-  <div id="root"></div>
+  };
 
-  <script type="text/babel">
-    const { useState } = React;
-
-    // PASSWORT-EINSTELLUNG
-    const ACCESS_PASSWORD = "51FRH112";
-
-    function App() {
-      // Auth State
-      const [isAuthenticated, setIsAuthenticated] = useState(false);
-      const [passwordInput, setPasswordInput] = useState("");
-      const [authError, setAuthError] = useState(false);
-
-      // App State
-      const [activeTab, setActiveTab] = useState('newsletter');
-      const [logoUrl, setLogoUrl] = useState(null);
-      
-      // Header State
-      const [titel, setTitel] = useState('MONATS-INFO');
-      const [stichwort, setStichwort] = useState('EINSATZUPDATE & INFOS');
-      
-      // Newsletter State
-      const [articles, setArticles] = useState([
-        { 
-          id: 1, 
-          title: 'Erfolgreiche Großübung absolviert', 
-          category: 'Übungsdienst', 
-          text: 'Am vergangenen Samstag fand unsere jährliche Hauptübung statt. Schwerpunkte waren die Brandbekämpfung sowie die Menschenrettung unter schwerem Atemschutz.' 
+  // Add Article Image
+  const addArticleImage = (articleId, e) => {
+    handleImageUpload(e, (imageData) => {
+      setArticles(articles.map(art => {
+        if (art.id === articleId) {
+          return { ...art, images: [...art.images, imageData] };
         }
-      ]);
-      const [sidebarInfo, setSidebarInfo] = useState({
-        einsaetze: '14',
-        uebungen: '4',
-        termine: '15.11. - Dienstversammlung\n28.11. - Wettausbildung'
+        return art;
+      }));
+    });
+  };
+
+  // Article Actions
+  const addArticle = () => {
+    setArticles([
+      ...articles,
+      {
+        id: Date.now().toString(),
+        title: 'Neuer Beitrag',
+        category: 'Allgemein',
+        content: 'Hier den Text für den neuen Beitrag eingeben...',
+        images: []
+      }
+    ]);
+  };
+
+  const removeArticle = (id) => {
+    setArticles(articles.filter(a => a.id !== id));
+  };
+
+  const moveArticle = (index, direction) => {
+    const newArticles = [...articles];
+    const targetIndex = index + direction;
+    if (targetIndex >= 0 && targetIndex < newArticles.length) {
+      const temp = newArticles[index];
+      newArticles[index] = newArticles[targetIndex];
+      newArticles[targetIndex] = temp;
+      setArticles(newArticles);
+    }
+  };
+
+  // Trigger Print
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Gemini API Integration for One Minute Wonder
+  const generateAiContent = async () => {
+    if (!aiTopicInput.trim()) return;
+    setAiLoading(true);
+
+    try {
+      const systemPrompt = "Du bist ein Fachberater für die Freiwillige Feuerwehr. Formuliere prägnante, verständliche Feuerwehr-Fakten für ein 1-seitiges Schulungsblatt (One Minute Wonder).Antworte direkt im JSON Format.";
+      const userPrompt = aiPromptType === 'summarize' 
+        ? `Erstelle ein 'One Minute Wonder' Thema für die Feuerwehr zu folgendem Begriff/Thema: "${aiTopicInput}". Gib folgendes JSON zurück: {"title": "Kurzer prägnanter Titel", "badge": "Kategorie z.B. TAKTIK / TECHNIK", "summary": "Kurze Zusammenfassung (2 Sätze)", "keyFacts": [{"label": "Fakt 1", "val": "Wert 1"}, {"label": "Fakt 2", "val": "Wert 2"}, {"label": "Fakt 3", "val": "Wert 3"}], "mainText": "Detaillierter Erklärtext (max. 100 Wörter)", "highlightBox": "Wichtiger Merksatz für den Feuerwehrdienst"}`
+        : `Generiere eine schlagkräftige Erklärung und Kernfakten zu: "${aiTopicInput}" für Feuerwehrleute im JSON-Format mit Schlüssel: title, badge, summary, keyFacts (Array von {label, val}), mainText, highlightBox.`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { responseMimeType: "application/json" }
+      };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
 
-      // One Minute Wonder State
-      const [omwTitle, setOmwTitle] = useState('Motorkettensäge im Feuerwehrdienst');
-      const [omwSub, setOmwSub] = useState('SICHERHEIT & EINSATZTAKTIK');
-      const [generatingGraphicId, setGeneratingGraphicId] = useState(null);
-      
-      const [omwBoxes, setOmwBoxes] = useState([
-        { 
-          id: 1, 
-          title: 'Persönliche Schutzausrüstung', 
-          text: 'Schnittschutzhose (Klasse 1), Helm mit Gesichtsschutz und Gehörschutz sind zwingend erforderlich.', 
-          image: null 
-        },
-        { 
-          id: 2, 
-          title: 'Einsatzbereich', 
-          text: 'Beseitigung von Sturmschäden, Dachteile öffnen bei Brandeinsätzen, THL-Einsätze.', 
-          image: null 
-        },
-        { 
-          id: 3, 
-          title: 'Sicherheitszonen', 
-          text: 'Im Gefahrenbereich von 2x Baumlänge darf sich nur der Sägeführer und der Helfer aufhalten.', 
-          image: null 
-        }
-      ]);
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      // Login Handler
-      const handleLogin = (e) => {
-        e.preventDefault();
-        if (passwordInput.trim() === ACCESS_PASSWORD) {
-          setIsAuthenticated(true);
-          setAuthError(false);
-        } else {
-          setAuthError(true);
-        }
-      };
-
-      // Logo Handle
-      const handleLogoUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) setLogoUrl(URL.createObjectURL(file));
-      };
-
-      // Newsletter Steuerung
-      const addArticle = () => {
-        setArticles([...articles, { id: Date.now(), title: 'Neuer Beitrag', category: 'Allgemein', text: 'Inhalt hier eingeben...' }]);
-      };
-
-      const updateArticle = (id, field, value) => {
-        setArticles(articles.map(a => a.id === id ? { ...a, [field]: value } : a));
-      };
-
-      const removeArticle = (id) => {
-        if (articles.length > 1) setArticles(articles.filter(a => a.id !== id));
-      };
-
-      // OMW Boxen Steuerung
-      const addOmwBox = () => {
-        setOmwBoxes([...omwBoxes, { id: Date.now(), title: `Infobox ${omwBoxes.length + 1}`, text: 'Inhalt / Fakten hier eingeben...', image: null }]);
-      };
-
-      const removeOmwBox = (id) => {
-        if (omwBoxes.length > 1) setOmwBoxes(omwBoxes.filter(b => b.id !== id));
-      };
-
-      const updateOmwBox = (id, field, value) => {
-        setOmwBoxes(omwBoxes.map(b => b.id === id ? { ...b, [field]: value } : b));
-      };
-
-      const handleBoxImageUpload = (id, e) => {
-        const file = e.target.files[0];
-        if (file) updateOmwBox(id, 'image', URL.createObjectURL(file));
-      };
-
-      // KI Grafik-Generierung
-      const generateAiGraphic = (id) => {
-        setGeneratingGraphicId(id);
-        setTimeout(() => {
-          const sampleImages = [
-            'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=500&q=80',
-            'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=500&q=80',
-            'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=500&q=80'
-          ];
-          const randomImg = sampleImages[Math.floor(Math.random() * sampleImages.length)];
-          updateOmwBox(id, 'image', randomImg);
-          setGeneratingGraphicId(null);
-        }, 1200);
-      };
-
-      // ANMELDEBILDSCHIRM
-      if (!isAuthenticated) {
-        return (
-          <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-            <form onSubmit={handleLogin} className="bg-gray-900 border border-gray-800 p-8 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
-              <div className="text-center">
-                <i className="fa-solid fa-shield-halved text-4xl text-red-600 mb-3"></i>
-                <h2 className="text-xl font-bold text-white">Geschützter Bereich</h2>
-                <p className="text-xs text-gray-400 mt-1">Freiwillige Feuerwehr Reithofen-Harthofen</p>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">Passwort eingeben</label>
-                <input 
-                  type="password" 
-                  placeholder="Passwort..." 
-                  value={passwordInput} 
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-center tracking-widest focus:outline-none focus:border-red-600"
-                  autoFocus
-                />
-                {authError && <p className="text-red-500 text-xs mt-2 text-center font-semibold">Falsches Passwort!</p>}
-              </div>
-              <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
-                Anmelden
-              </button>
-            </form>
-          </div>
-        );
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed.title) setOmwTopic(parsed.title);
+        if (parsed.badge) setOmwBadge(parsed.badge.toUpperCase());
+        if (parsed.summary) setOmwSummary(parsed.summary);
+        if (parsed.keyFacts && Array.isArray(parsed.keyFacts)) setOmwKeyFacts(parsed.keyFacts);
+        if (parsed.mainText) setOmwMainText(parsed.mainText);
+        if (parsed.highlightBox) setOmwHighlightBox(parsed.highlightBox);
       }
+    } catch (err) {
+      console.error("AI Generation Error:", err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
-      // HAUPTANWENDUNG
-      return (
-        <div className="flex h-screen overflow-hidden">
-          {/* EDITOR (LINKS) */}
-          <div className="w-1/2 p-6 overflow-y-auto border-r border-gray-800 bg-gray-950 no-print">
-            <div className="flex items-center justify-between mb-6 border-b border-gray-800 pb-4">
-              <h1 className="text-xl font-bold text-red-500 flex items-center gap-2">
-                <i className="fa-solid fa-fire-extinguisher"></i> Feuerwehr Infomedien Studio
-              </h1>
-              <button onClick={() => window.print()} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition">
-                <i className="fa-solid fa-print"></i> PDF Drucken
-              </button>
-            </div>
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
+      
+      {/* APP HEADER / TOPBAR (Screen Only) */}
+      <header className="no-print bg-slate-900 text-white px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-800 shadow-md">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-lg bg-[#C80000] flex items-center justify-center font-black text-xl shadow-inner text-white">
+            FF
+          </div>
+          <div>
+            <h1 className="font-bold text-lg leading-tight">Feuerwehr Info-Creator</h1>
+            <p className="text-xs text-slate-400">FF Reithofen-Harthofen • Printable A4 Media Builder</p>
+          </div>
+        </div>
 
-            {/* Logo Upload */}
-            <div className="bg-gray-900 p-4 rounded-xl mb-6 border border-gray-800">
-              <label className="text-xs text-gray-400 block mb-1">Vereins-Logo hochladen</label>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} className="text-xs text-gray-300 cursor-pointer" />
-            </div>
+        {/* Media Selector Tabs */}
+        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 my-2 sm:my-0">
+          <button
+            onClick={() => setDocType('newsletter')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              docType === 'newsletter' ? 'bg-[#C80000] text-white shadow' : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Newsletter (Mehrseitig)</span>
+          </button>
+          <button
+            onClick={() => setDocType('oneminute')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              docType === 'oneminute' ? 'bg-[#C80000] text-white shadow' : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Lightbulb className="w-4 h-4" />
+            <span>One Minute Wonder (1 A4)</span>
+          </button>
+        </div>
 
-            {/* Tabs Selector */}
-            <div className="flex gap-2 mb-6">
-              <button 
-                onClick={() => setActiveTab('newsletter')}
-                className={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'newsletter' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
-                <i className="fa-solid fa-newspaper"></i> Newsletter
-              </button>
-              <button 
-                onClick={() => setActiveTab('omw')}
-                className={`flex-1 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${activeTab === 'omw' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}>
-                <i className="fa-solid fa-bolt"></i> One Minute Wonder
-              </button>
-            </div>
+        {/* Action Controls */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handlePrint}
+            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all shadow-md active:scale-95 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Drucken / PDF Export</span>
+          </button>
+        </div>
+      </header>
 
-            {/* TAB: NEWSLETTER */}
-            {activeTab === 'newsletter' && (
-              <div className="space-y-6">
-                <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <h3 className="font-semibold text-red-400 text-sm">Header-Konfiguration</h3>
-                  <input type="text" value={titel} onChange={(e) => setTitel(e.target.value)} placeholder="Haupttitel" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
-                  <input type="text" value={stichwort} onChange={(e) => setStichwort(e.target.value)} placeholder="Stichwort (Rot)" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
+      {/* MAIN TWO-COLUMN WORKSPACE */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        {/* LEFT COLUMN: EDITOR CONTROLS (Screen Only) */}
+        <div className="no-print w-full lg:w-1/2 p-6 overflow-y-auto border-r border-slate-200 bg-white shadow-inner">
+          <div className="max-w-2xl mx-auto space-y-8">
+            
+            {/* BRANDING & GENERAL SETTINGS */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center space-x-2">
+                <Settings className="w-4 h-4 text-[#C80000]" />
+                <span>Kopfzeile & Branding Settings</span>
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Roter Banner-Titel</label>
+                  <input
+                    type="text"
+                    value={headerTitle}
+                    onChange={(e) => setHeaderTitle(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C80000] focus:outline-none"
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-300">Beiträge ({articles.length})</h3>
-                    <button onClick={addArticle} className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
-                      <i className="fa-solid fa-plus"></i> Beitrag hinzufügen
-                    </button>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Hauptüberschrift (Schwarz)</label>
+                  <input
+                    type="text"
+                    value={mainTitle}
+                    onChange={(e) => setMainTitle(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C80000] focus:outline-none"
+                  />
+                </div>
 
-                  {articles.map((art, idx) => (
-                    <div key={art.id} className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-red-500">Beitrag #{idx + 1}</span>
-                        {articles.length > 1 && (
-                          <button onClick={() => removeArticle(art.id)} className="text-gray-500 hover:text-red-400 text-xs">
-                            <i className="fa-solid fa-trash"></i> Löschen
-                          </button>
-                        )}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Stichwort / Untertitel (Rot)</label>
+                  <input
+                    type="text"
+                    value={stichwort}
+                    onChange={(e) => setStichwort(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C80000] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Ausgaben-Datum / Info</label>
+                  <input
+                    type="text"
+                    value={issueDate}
+                    onChange={(e) => setIssueDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C80000] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Logo Hochladen</label>
+                  <div className="flex items-center space-x-2">
+                    <label className="cursor-pointer bg-white border border-slate-300 hover:border-[#C80000] text-xs px-3 py-2 rounded-lg flex items-center space-x-1 font-medium transition-all w-full">
+                      <Upload className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{logoUrl ? 'Logo ändern' : 'Logo Upload (PNG/JPG)'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => handleImageUpload(e, setLogoUrl)} 
+                      />
+                    </label>
+                    {logoUrl && (
+                      <button 
+                        onClick={() => setLogoUrl(null)}
+                        className="text-red-500 hover:text-red-700 text-xs px-2 py-1"
+                        title="Logo entfernen"
+                      >
+                        Entfernen
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* EDITOR FOR NEWSLETTER */}
+            {docType === 'newsletter' && (
+              <div className="space-y-6">
+                
+                {/* ARTICLES MANAGER */}
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-800 text-base flex items-center space-x-2">
+                    <Layers className="w-5 h-5 text-[#C80000]" />
+                    <span>Beiträge ({articles.length})</span>
+                  </h3>
+                  <button
+                    onClick={addArticle}
+                    className="flex items-center space-x-1 bg-[#C80000] hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Beitrag hinzufügen</span>
+                  </button>
+                </div>
+
+                {articles.map((art, idx) => (
+                  <div key={art.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-3 relative group">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Beitrag #{idx + 1}</span>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => moveArticle(idx, -1)}
+                          disabled={idx === 0}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                          title="Nach oben verschieben"
+                        >
+                          <MoveUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => moveArticle(idx, 1)}
+                          disabled={idx === articles.length - 1}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                          title="Nach unten verschieben"
+                        >
+                          <MoveDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removeArticle(art.id)}
+                          className="p-1 text-red-400 hover:text-red-600 ml-2"
+                          title="Beitrag löschen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <input type="text" value={art.category} onChange={(e) => updateArticle(art.id, 'category', e.target.value)} placeholder="Kategorie" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs font-semibold text-red-400" />
-                      <input type="text" value={art.title} onChange={(e) => updateArticle(art.id, 'title', e.target.value)} placeholder="Überschrift" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-bold" />
-                      <textarea rows="3" value={art.text} onChange={(e) => updateArticle(art.id, 'text', e.target.value)} placeholder="Inhalt..." className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"></textarea>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Titel</label>
+                        <input
+                          type="text"
+                          value={art.title}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setArticles(articles.map(a => a.id === art.id ? { ...a, title: val } : a));
+                          }}
+                          className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Kategorie / Tag</label>
+                        <input
+                          type="text"
+                          value={art.category}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setArticles(articles.map(a => a.id === art.id ? { ...a, category: val } : a));
+                          }}
+                          className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Inhalt / Text</label>
+                      <textarea
+                        rows={4}
+                        value={art.content}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setArticles(articles.map(a => a.id === art.id ? { ...a, content: val } : a));
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000] focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Article Image Uploader */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Bilder angehängt ({art.images.length})</label>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {art.images.map((img, imgIdx) => (
+                          <div key={imgIdx} className="relative w-14 h-14 rounded border overflow-hidden bg-slate-100 group/img">
+                            <img src={img} alt="Upload" className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => {
+                                setArticles(articles.map(a => {
+                                  if (a.id === art.id) {
+                                    return { ...a, images: a.images.filter((_, i) => i !== imgIdx) };
+                                  }
+                                  return a;
+                                }));
+                              }}
+                              className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity text-xs"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+
+                        <label className="cursor-pointer w-14 h-14 border-2 border-dashed border-slate-300 hover:border-[#C80000] rounded flex flex-col items-center justify-center text-slate-400 hover:text-[#C80000] transition-colors">
+                          <Plus className="w-5 h-5" />
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => addArticleImage(art.id, e)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* SIDEBAR INFOBOXES MANAGER */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-[#C80000]" />
+                    <span>Rechte Infobox (Termine / Statistik)</span>
+                  </h3>
+
+                  {sidebarItems.map((sb, sbIdx) => (
+                    <div key={sb.id} className="p-3 bg-white border border-slate-200 rounded-lg space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <input
+                          type="text"
+                          value={sb.title}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSidebarItems(sidebarItems.map(s => s.id === sb.id ? { ...s, title: val } : s));
+                          }}
+                          className="font-bold text-slate-800 border-b border-slate-200 pb-0.5 focus:outline-none focus:border-[#C80000]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        {sb.items.map((item, itemIdx) => (
+                          <div key={itemIdx} className="flex items-center space-x-1">
+                            <input
+                              type="text"
+                              value={item}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSidebarItems(sidebarItems.map(s => {
+                                  if (s.id === sb.id) {
+                                    const newItems = [...s.items];
+                                    newItems[itemIdx] = val;
+                                    return { ...s, items: newItems };
+                                  }
+                                  return s;
+                                }));
+                              }}
+                              className="w-full px-2 py-1 border border-slate-200 rounded focus:outline-none focus:border-[#C80000]"
+                            />
+                            <button
+                              onClick={() => {
+                                setSidebarItems(sidebarItems.map(s => {
+                                  if (s.id === sb.id) {
+                                    return { ...s, items: s.items.filter((_, i) => i !== itemIdx) };
+                                  }
+                                  return s;
+                                }));
+                              }}
+                              className="text-red-400 hover:text-red-600 px-1"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setSidebarItems(sidebarItems.map(s => {
+                              if (s.id === sb.id) {
+                                return { ...s, items: [...s.items, 'Neuer Eintrag'] };
+                              }
+                              return s;
+                            }));
+                          }}
+                          className="text-[#C80000] font-semibold hover:underline text-[11px] pt-1 block"
+                        >
+                          + Zeile hinzufügen
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <h3 className="font-semibold text-red-400 text-sm">Rechte Infobox (Statistik & Termine)</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" value={sidebarInfo.einsaetze} onChange={(e) => setSidebarInfo({...sidebarInfo, einsaetze: e.target.value})} placeholder="Einsätze" className="bg-gray-800 border border-gray-700 rounded p-2 text-xs" />
-                    <input type="text" value={sidebarInfo.uebungen} onChange={(e) => setSidebarInfo({...sidebarInfo, uebungen: e.target.value})} placeholder="Übungen" className="bg-gray-800 border border-gray-700 rounded p-2 text-xs" />
-                  </div>
-                  <textarea rows="3" value={sidebarInfo.termine} onChange={(e) => setSidebarInfo({...sidebarInfo, termine: e.target.value})} placeholder="Termine..." className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"></textarea>
-                </div>
               </div>
             )}
 
-            {/* TAB: ONE MINUTE WONDER */}
-            {activeTab === 'omw' && (
+            {/* EDITOR FOR ONE MINUTE WONDER */}
+            {docType === 'oneminute' && (
               <div className="space-y-6">
-                <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <h3 className="font-semibold text-red-400 text-sm">One Minute Wonder Header</h3>
-                  <input type="text" value={omwTitle} onChange={(e) => setOmwTitle(e.target.value)} placeholder="Thema / Haupttitel" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-bold" />
-                  <input type="text" value={omwSub} onChange={(e) => setOmwSub(e.target.value)} placeholder="Untertitel / Kategorie" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs text-red-400 font-semibold" />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-300">Infoboxen ({omwBoxes.length})</h3>
-                    <button onClick={addOmwBox} className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
-                      <i className="fa-solid fa-plus"></i> Box hinzufügen
+                
+                {/* AI ASSISTANT BOX */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center space-x-2 text-amber-900 font-bold text-sm">
+                    <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
+                    <span>KI-Assistent (Gemini API) für One Minute Wonder</span>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Gib ein Thema oder Feuerwehrbegriff ein. Die KI generiert dir automatisch Zusammenfassung, Kernfakten und Merksatz.
+                  </p>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="z.B. Atemschutznotfall, Hydrantenpflege, Waldbrandbekämpfung..."
+                      value={aiTopicInput}
+                      onChange={(e) => setAiTopicInput(e.target.value)}
+                      className="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                    />
+                    <button
+                      onClick={generateAiContent}
+                      disabled={aiLoading}
+                      className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center space-x-1 transition-all shadow"
+                    >
+                      {aiLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Generieren</span>
+                        </>
+                      )}
                     </button>
                   </div>
+                </div>
 
-                  {omwBoxes.map((box, idx) => (
-                    <div key={box.id} className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-red-500">Box #{idx + 1}</span>
-                        {omwBoxes.length > 1 && (
-                          <button onClick={() => removeOmwBox(box.id)} className="text-gray-500 hover:text-red-400 text-xs">
-                            <i className="fa-solid fa-trash"></i> Löschen
-                          </button>
+                {/* FORM FIELDS FOR OMW */}
+                <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm space-y-4">
+                  <h3 className="font-bold text-slate-800 text-sm border-b pb-2">Inhalt & Layout anpassen</h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Thema / Titel</label>
+                      <input
+                        type="text"
+                        value={omwTopic}
+                        onChange={(e) => setOmwTopic(e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Badge / Tag (Rot)</label>
+                      <input
+                        type="text"
+                        value={omwBadge}
+                        onChange={(e) => setOmwBadge(e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Kurze Zusammenfassung (Teaser)</label>
+                    <textarea
+                      rows={2}
+                      value={omwSummary}
+                      onChange={(e) => setOmwSummary(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000]"
+                    />
+                  </div>
+
+                  {/* Key Facts Inputs */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Quick-Facts (3 Boxen)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {omwKeyFacts.map((fact, idx) => (
+                        <div key={idx} className="p-2 border rounded bg-slate-50 space-y-1">
+                          <input
+                            type="text"
+                            placeholder="Label"
+                            value={fact.label}
+                            onChange={(e) => {
+                              const newFacts = [...omwKeyFacts];
+                              newFacts[idx].label = e.target.value;
+                              setOmwKeyFacts(newFacts);
+                            }}
+                            className="w-full text-xs font-bold bg-transparent border-b border-slate-200 focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Wert"
+                            value={fact.val}
+                            onChange={(e) => {
+                              const newFacts = [...omwKeyFacts];
+                              newFacts[idx].val = e.target.value;
+                              setOmwKeyFacts(newFacts);
+                            }}
+                            className="w-full text-xs bg-transparent focus:outline-none text-[#C80000]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Haupt-Erklärtext</label>
+                    <textarea
+                      rows={4}
+                      value={omwMainText}
+                      onChange={(e) => setOmwMainText(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-[#C80000]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Merksatz / Info-Kasten</label>
+                    <textarea
+                      rows={2}
+                      value={omwHighlightBox}
+                      onChange={(e) => setOmwHighlightBox(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm border border-amber-300 bg-amber-50 rounded-md focus:ring-1 focus:ring-amber-500 font-medium text-amber-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Hauptbild / Schema Grafik</label>
+                    <div className="flex items-center space-x-3">
+                      {omwImage && (
+                        <div className="w-16 h-16 rounded border overflow-hidden">
+                          <img src={omwImage} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-2 rounded border border-slate-300 font-medium">
+                        <span>{omwImage ? 'Bild Ändern' : 'Bild Hochladen'}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => handleImageUpload(e, setOmwImage)}
+                        />
+                      </label>
+                      {omwImage && (
+                        <button onClick={() => setOmwImage(null)} className="text-xs text-red-500 hover:underline">
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: A4 CANVAS LIVE PREVIEW & PRINT AREA */}
+        <div className="flex-1 bg-slate-200/80 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-start min-h-screen">
+          
+          <div className="no-print mb-4 flex items-center space-x-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <Eye className="w-4 h-4 text-[#C80000]" />
+            <span>Echtzeit-Druckvorschau (Din A4 Format)</span>
+          </div>
+
+          {/* A4 PRINT CONTAINER SHEET */}
+          <div 
+            id="printable-a4-area" 
+            className="a4-page bg-white shadow-2xl mx-auto p-8 relative flex flex-col justify-between text-slate-800 transition-all duration-200"
+            style={{
+              width: '210mm',
+              minHeight: '297mm',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* === HEADER SECTION (RED BANNER & LOGO) === */}
+            <div>
+              {/* Red Header Bar */}
+              <div className="bg-[#C80000] text-white px-5 py-3.5 flex justify-between items-center rounded-sm shadow-sm">
+                <div className="font-extrabold text-lg tracking-wide uppercase font-sans">
+                  {headerTitle}
+                </div>
+                
+                {/* Logo Area */}
+                <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded border border-white/20">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <div className="text-[10px] text-white/80 font-bold text-center leading-tight">
+                      LOGO<br/>HIER
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Title & Stichwort Header */}
+              <div className="mt-5 pb-4 border-b-2 border-slate-900 flex justify-between items-end">
+                <div>
+                  <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">
+                    {mainTitle}
+                  </h1>
+                  {stichwort && (
+                    <div className="text-sm font-bold text-[#C80000] tracking-wider uppercase mt-1">
+                      {stichwort}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                  {issueDate}
+                </div>
+              </div>
+            </div>
+
+            {/* === CONTENT SECTION BASED ON TYPE === */}
+            <div className="my-6 flex-1">
+              
+              {/* NEWSLETTER LAYOUT */}
+              {docType === 'newsletter' && (
+                <div className="grid grid-cols-12 gap-6">
+                  
+                  {/* MAIN ARTICLES (8 Columns) */}
+                  <div className="col-span-8 space-y-6">
+                    {articles.map((art) => (
+                      <div key={art.id} className="space-y-2 border-b border-slate-100 pb-5 last:border-none">
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-[#C80000] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                            {art.category}
+                          </span>
+                          <h2 className="text-base font-bold text-slate-900 leading-snug">
+                            {art.title}
+                          </h2>
+                        </div>
+
+                        <p className="text-xs leading-relaxed text-slate-700 whitespace-pre-line">
+                          {art.content}
+                        </p>
+
+                        {/* Article Images Grid */}
+                        {art.images && art.images.length > 0 && (
+                          <div className={`grid gap-2 mt-2 ${art.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {art.images.map((img, i) => (
+                              <div key={i} className="rounded border border-slate-200 overflow-hidden max-h-48 bg-slate-50">
+                                <img src={img} alt="Artikelbild" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <input type
+                    ))}
+                  </div>
+
+                  {/* RIGHT SIDEBAR (4 Columns) */}
+                  <div className="col-span-4 border-l border-slate-200 pl-5 space-y-6">
+                    {sidebarItems.map((sb) => (
+                      <div key={sb.id} className="bg-slate-50 border border-slate-200 rounded p-3.5 space-y-2">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-[#C80000] border-b border-slate-200 pb-1">
+                          {sb.title}
+                        </h3>
+                        <ul className="space-y-1.5 text-[11px] text-slate-700 font-medium">
+                          {sb.items.map((item, idx) => (
+                            <li key={idx} className="flex items-start space-x-1.5 leading-tight">
+                              <span className="text-[#C80000] font-bold">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+
+                    <div className="p-3 bg-red-50 border border-red-100 rounded text-center space-y-1">
+                      <div className="text-[10px] font-bold text-[#C80000] uppercase">Notruf 112</div>
+                      <p className="text-[9px] text-slate-500">In Notfällen immer unverzüglich wählen!</p>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ONE MINUTE WONDER LAYOUT */}
+              {docType === 'oneminute' && (
+                <div className="space-y-6">
+                  
+                  {/* OMW Header Badge & Topic */}
+                  <div className="bg-slate-900 text-white p-5 rounded-lg border-l-4 border-[#C80000] space-y-2">
+                    <div className="inline-block bg-[#C80000] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                      ONE MINUTE WONDER • {omwBadge}
+                    </div>
+                    <h2 className="text-2xl font-black tracking-tight text-white">
+                      {omwTopic}
+                    </h2>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{omwSummary}"
+                    </p>
+                  </div>
+
+                  {/* Quick Facts 3 Cards */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {omwKeyFacts.map((fact, idx) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-200 p-3 rounded text-center">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          {fact.label}
+                        </div>
+                        <div className="text-sm font-black text-[#C80000] mt-0.5">
+                          {fact.val}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Main Explanation & Scheme Image */}
+                  <div className="grid grid-cols-12 gap-5 items-start">
+                    <div className={`${omwImage ? 'col-span-7' : 'col-span-12'} space-y-3`}>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
+                        Fakt erklärt & Anwendung
+                      </h3>
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line font-normal">
+                        {omwMainText}
+                      </p>
+                    </div>
+
+                    {omwImage && (
+                      <div className="col-span-5 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 shadow-sm">
+                        <img src={omwImage} alt="Schema / Grafik" className="w-full h-auto object-cover" />
+                        <div className="p-1.5 text-[9px] text-center text-slate-400 italic bg-white border-t">
+                          Abbildung: Taktische Darstellung
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Highlight Merksatz Box */}
+                  {omwHighlightBox && (
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1">
+                      <div className="text-xs font-bold text-amber-900 uppercase tracking-wide flex items-center space-x-1">
+                        <Lightbulb className="w-4 h-4 text-amber-600" />
+                        <span>Wichtiger Merksatz für die Praxis</span>
+                      </div>
+                      <p className="text-xs text-amber-950 leading-relaxed font-medium">
+                        {omwHighlightBox}
+                      </p>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+            </div>
+
+            {/* === FOOTER SECTION === */}
+            <div className="pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400 font-medium">
+              <div>
+                Herausgeber: Freiwillige Feuerwehr Reithofen-Harthofen
+              </div>
+              <div>
+                {docType === 'newsletter' ? 'Monats-Information' : 'One Minute Wonder - Schulungsreihe'}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* PRINT CSS STYLING RULES */}
+      <style>{`
+        @media print {
+          /* Hide UI Elements during printing */
+          .no-print {
+            display: none !important;
+          }
+
+          body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Ensure exact Din A4 sizing */
+          .a4-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 12mm !important;
+            margin: 0 auto !important;
+            page-break-after: always;
+          }
+
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+        }
+      `}</style>
+
+    </div>
+  );
+}
