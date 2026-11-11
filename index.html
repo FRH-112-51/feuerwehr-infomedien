@@ -58,7 +58,7 @@
       
       // Newsletter State
       const [articles, setArticles] = useState([
-        { id: 1, title: 'Erfolgreiche Großübung absolviert', category: 'Übungsdienst', text: 'Am vergangenen Samstag fand unsere jährliche Hauptübung statt. Schwerpunkte waren die Brandbekämpfung sowie die Menschenrettung unter schwerem Atemschutz.', images: [] }
+        { id: 1, title: 'Erfolgreiche Großübung absolviert', category: 'Übungsdienst', text: 'Am vergangenen Samstag fand unsere jährliche Hauptübung statt...', images: [] }
       ]);
       const [sidebarInfo, setSidebarInfo] = useState({
         einsaetze: '14',
@@ -83,21 +83,25 @@
         }
       };
 
-      // Articles Management
-      const addArticle = () => {
-        setArticles([
-          ...articles,
-          { id: Date.now(), title: 'Neuer Beitrag', category: 'Allgemein', text: 'Inhalt des Beitrags hier eingeben...', images: [] }
-        ]);
+      // Box Controls OMW
+      const addOmwBox = () => {
+        setOmwBoxes([...omwBoxes, { id: Date.now(), title: `Infobox ${omwBoxes.length + 1}`, text: 'Beschreibungstext hier eingeben...', image: null }]);
       };
 
-      const updateArticle = (id, field, value) => {
-        setArticles(articles.map(a => a.id === id ? { ...a, [field]: value } : a));
+      const removeOmwBox = (id) => {
+        if (omwBoxes.length > 1) {
+          setOmwBoxes(omwBoxes.filter(box => box.id !== id));
+        }
       };
 
-      const removeArticle = (id) => {
-        if (articles.length > 1) {
-          setArticles(articles.filter(a => a.id !== id));
+      const updateOmwBox = (id, field, value) => {
+        setOmwBoxes(omwBoxes.map(b => b.id === id ? { ...b, [field]: value } : b));
+      };
+
+      const handleBoxImageUpload = (id, e) => {
+        const file = e.target.files[0];
+        if (file) {
+          updateOmwBox(id, 'image', URL.createObjectURL(file));
         }
       };
 
@@ -112,7 +116,7 @@
           <div class="w-1/2 p-6 overflow-y-auto border-r border-gray-800 bg-gray-950 no-print">
             <div class="flex items-center justify-between mb-6 border-b border-gray-800 pb-4">
               <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
-                <i class="fa-solid fa-fire-extinguisher"></i> Feuerwehr Infomedien Studio
+                <i class="fa-solid fa-fire-extinguisher"></i> Infomedien Studio
               </h1>
               <button onClick={handlePrint} class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition">
                 <i class="fa-solid fa-print"></i> PDF Drucken
@@ -141,3 +145,211 @@
                 <i class="fa-solid fa-bolt"></i> One Minute Wonder
               </button>
             </div>
+
+            {/* TAB: NEWSLETTER */}
+            {activeTab === 'newsletter' && (
+              <div class="space-y-4">
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
+                  <h3 class="font-semibold text-red-400">Header-Konfiguration</h3>
+                  <div>
+                    <label class="text-xs text-gray-400">Haupt-Titel (Schwarz in Vorschau)</label>
+                    <input type="text" value={titel} onChange={(e) => setTitel(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Stichwort / Untertitel (Rot in Vorschau)</label>
+                    <input type="text" value={stichwort} onChange={(e) => setStichwort(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                </div>
+
+                {/* Sidebar Stats Box */}
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
+                  <h3 class="font-semibold text-red-400">Rechte Infobox (Statistik & Termine)</h3>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="text-xs text-gray-400">Einsätze</label>
+                      <input type="text" value={sidebarInfo.einsaetze} onChange={(e) => setSidebarInfo({...sidebarInfo, einsaetze: e.target.value})} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label class="text-xs text-gray-400">Übungen</label>
+                      <input type="text" value={sidebarInfo.uebungen} onChange={(e) => setSidebarInfo({...sidebarInfo, uebungen: e.target.value})} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Termine / Hinweise</label>
+                    <textarea rows="3" value={sidebarInfo.termine} onChange={(e) => setSidebarInfo({...sidebarInfo, termine: e.target.value})} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1"></textarea>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: ONE MINUTE WONDER */}
+            {activeTab === 'omw' && (
+              <div class="space-y-4">
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
+                  <h3 class="font-semibold text-red-400">One Minute Wonder Header</h3>
+                  <div>
+                    <label class="text-xs text-gray-400">Thema / Haupt-Titel</label>
+                    <input type="text" value={omwTitle} onChange={(e) => setOmwTitle(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Kategorie / Stichwort (Rot)</label>
+                    <input type="text" value={omwSub} onChange={(e) => setOmwSub(e.target.value)} class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm mt-1" />
+                  </div>
+                </div>
+
+                {/* Dynamic Boxes */}
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-gray-300">Infoboxen ({omwBoxes.length})</h3>
+                    <button onClick={addOmwBox} class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1">
+                      <i class="fa-solid fa-plus"></i> Box hinzufügen
+                    </button>
+                  </div>
+
+                  {omwBoxes.map((box, idx) => (
+                    <div key={box.id} class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-2 relative">
+                      <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-red-500">Box #{idx + 1}</span>
+                        {omwBoxes.length > 1 && (
+                          <button onClick={() => removeOmwBox(box.id)} class="text-gray-500 hover:text-red-400 text-xs">
+                            <i class="fa-solid fa-trash"></i> Löschen
+                          </button>
+                        )}
+                      </div>
+                      <input 
+                        type="text" 
+                        value={box.title} 
+                        onChange={(e) => updateOmwBox(box.id, 'title', e.target.value)}
+                        placeholder="Titel der Infobox" 
+                        class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-semibold" 
+                      />
+                      <textarea 
+                        rows="2" 
+                        value={box.text} 
+                        onChange={(e) => updateOmwBox(box.id, 'text', e.target.value)}
+                        placeholder="Inhalt / Fakten..." 
+                        class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-xs"
+                      ></textarea>
+                      <div>
+                        <label class="text-xs text-gray-400 block mb-1">Grafik / Bild für diese Box</label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleBoxImageUpload(box.id, e)} 
+                          class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-800 file:text-gray-300 hover:file:bg-gray-700 cursor-pointer" 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT SIDEBAR / LIVE A4 PREVIEW */}
+          <div class="w-1/2 bg-gray-800 p-8 overflow-y-auto flex justify-center items-start">
+            <div id="print-area" class="a4-preview bg-white text-gray-900 p-8 flex flex-col justify-between">
+              <div>
+                {/* BRANDING HEADER */}
+                <div class="border-b-4 border-[#C80000] pb-4 mb-6">
+                  <div class="bg-[#C80000] text-white px-4 py-2 font-bold tracking-wider text-sm rounded-t flex justify-between items-center">
+                    <span>FREIWILLIGE FEUERWEHR REITHOFEN-HARTHOFEN</span>
+                    <span class="text-xs opacity-80">{new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
+                  </div>
+                  <div class="flex justify-between items-start mt-4 px-1">
+                    <div>
+                      {activeTab === 'newsletter' ? (
+                        <>
+                          <h1 class="text-3xl font-extrabold text-black tracking-tight uppercase">{titel}</h1>
+                          <p class="text-[#C80000] font-bold text-sm tracking-widest mt-0.5">{stichwort}</p>
+                        </>
+                      ) : (
+                        <>
+                          <div class="inline-block bg-black text-white px-2 py-0.5 text-xs font-black tracking-widest mb-1">ONE-MINUTE-WONDER</div>
+                          <h1 class="text-2xl font-black text-black tracking-tight">{omwTitle}</h1>
+                          <p class="text-[#C80000] font-bold text-xs tracking-wider mt-0.5">{omwSub}</p>
+                        </>
+                      )}
+                    </div>
+                    {/* LOGO AREA */}
+                    <div class="w-20 h-20 flex items-center justify-center border-2 border-dashed border-gray-300 rounded bg-gray-50 overflow-hidden">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" class="w-full h-full object-contain" />
+                      ) : (
+                        <span class="text-[10px] text-gray-400 font-semibold text-center leading-tight">LOGO<br/>HIER</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CONTENT AREA: NEWSLETTER */}
+                {activeTab === 'newsletter' && (
+                  <div class="grid grid-cols-3 gap-6">
+                    <div class="col-span-2 space-y-6">
+                      {articles.map((art) => (
+                        <div key={art.id} class="border-b border-gray-200 pb-4">
+                          <span class="text-[10px] font-bold bg-red-100 text-[#C80000] px-2 py-0.5 rounded uppercase">{art.category}</span>
+                          <h2 class="text-lg font-bold text-gray-900 mt-1">{art.title}</h2>
+                          <p class="text-xs text-gray-700 leading-relaxed mt-2">{art.text}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* SIDEBAR BOX */}
+                    <div class="col-span-1 space-y-4">
+                      <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-[#C80000] shadow-sm">
+                        <h3 class="font-bold text-xs text-gray-900 uppercase tracking-wider mb-2 border-b pb-1">Statistik Monat</h3>
+                        <div class="space-y-1 text-xs">
+                          <div class="flex justify-between"><span>Einsätze:</span> <strong class="text-[#C80000]">{sidebarInfo.einsaetze}</strong></div>
+                          <div class="flex justify-between"><span>Übungen:</span> <strong>{sidebarInfo.uebungen}</strong></div>
+                        </div>
+                      </div>
+
+                      <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-800 shadow-sm">
+                        <h3 class="font-bold text-xs text-gray-900 uppercase tracking-wider mb-2 border-b pb-1">Termine</h3>
+                        <p class="text-[11px] text-gray-700 whitespace-pre-line leading-relaxed">{sidebarInfo.termine}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTENT AREA: ONE MINUTE WONDER */}
+                {activeTab === 'omw' && (
+                  <div class="space-y-4">
+                    <div class={`grid gap-4 ${omwBoxes.length === 1 ? 'grid-cols-1' : omwBoxes.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                      {omwBoxes.map((box, i) => (
+                        <div key={box.id} class="border-2 border-gray-200 rounded-lg p-3 bg-white shadow-sm flex flex-col justify-between">
+                          <div>
+                            <div class="flex items-center gap-2 mb-2">
+                              <span class="w-5 h-5 rounded-full bg-[#C80000] text-white flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                              <h3 class="font-bold text-sm text-gray-900">{box.title}</h3>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed">{box.text}</p>
+                          </div>
+                          {box.image && (
+                            <div class="mt-3 h-28 w-full rounded overflow-hidden border border-gray-200">
+                              <img src={box.image} class="w-full h-full object-cover" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* FOOTER */}
+              <div class="border-t border-gray-200 pt-3 flex justify-between items-center text-[10px] text-gray-400">
+                <span>Freiwillige Feuerwehr Reithofen-Harthofen</span>
+                <span>Seite 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
