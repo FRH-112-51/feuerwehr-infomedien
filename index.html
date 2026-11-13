@@ -177,8 +177,16 @@
         e.target.value = '';
       };
 
-      // Auswertung der Übungsstunden im aktuell laufenden Kalenderjahr
+      // Auswertung der Übungsstunden für das auswählbare Kalenderjahr
+      const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
       const currentYear = new Date().getFullYear();
+      const availableYears = Array.from(new Set([
+        currentYear,
+        ...uebungen.map(u => {
+          const parts = String(u.datum || '').split('.');
+          return parts.length === 3 ? Number(parts[2]) : NaN;
+        }).filter(year => Number.isInteger(year) && year >= 1900 && year <= 2200)
+      ])).sort((a, b) => b - a);
       const getEventHours = (zeit) => {
         const match = String(zeit || '').match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
         if (!match) return 0;
@@ -187,12 +195,12 @@
         if (end < start) end += 24 * 60;
         return Math.max(0, (end - start) / 60);
       };
-      const currentYearEvents = uebungen.filter(u => {
+      const selectedYearEvents = uebungen.filter(u => {
         const parts = String(u.datum || '').split('.');
-        return parts.length === 3 && Number(parts[2]) === currentYear;
+        return parts.length === 3 && Number(parts[2]) === selectedYear;
       });
       const groupStatistics = gruppenList.map(gruppe => {
-        const assigned = currentYearEvents.filter(u => (Array.isArray(u.gruppen) ? u.gruppen : (u.gruppe ? [u.gruppe] : [])).includes(gruppe));
+        const assigned = selectedYearEvents.filter(u => (Array.isArray(u.gruppen) ? u.gruppen : (u.gruppe ? [u.gruppe] : [])).includes(gruppe));
         return { gruppe, termine: assigned.length, stunden: assigned.reduce((sum, u) => sum + getEventHours(u.zeit), 0) };
       });
 
@@ -567,9 +575,20 @@
                 </div>
 
                 <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <h3 class="font-semibold text-red-400">Jahresübersicht {currentYear}</h3>
-                    <span class="text-xs bg-red-950 text-red-300 px-2 py-1 rounded">{currentYearEvents.length} Termine</span>
+                  <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="font-semibold text-red-400">Jahresübersicht</h3>
+                    <div class="flex items-center gap-2">
+                      <label htmlFor="statistics-year" class="text-xs text-gray-400">Jahr:</label>
+                      <select
+                        id="statistics-year"
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        class="bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-white"
+                      >
+                        {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+                      </select>
+                      <span class="text-xs bg-red-950 text-red-300 px-2 py-1 rounded">{selectedYearEvents.length} Termine</span>
+                    </div>
                   </div>
                   <p class="text-xs text-gray-400">Übungsstunden je zugeordneter Gruppe bzw. Fachbereich. Bei Mehrfachzuordnung wird die volle Dauer jeder ausgewählten Gruppe angerechnet.</p>
                   <div class="overflow-x-auto">
